@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>McSorley's</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;800&family=Public+Sans:wght@400;600;800&display=swap" rel="stylesheet" />
+    <style>
+      button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"]) { min-height: 2rem; }
+      * { box-sizing: border-box; }
+      :root {
+        --page: #f1e6cf;
+        --page-ink: #2c1c0e;
+        --panel: #fff8ea;
+        --panel-line: #d9c193;
+        --wood: #6f4525;
+        --wood-dark: #4c2c14;
+        --brass: #b98a2f;
+        --brass-bright: #e0aa3e;
+        --light-ale: #f2b53a;
+        --light-ale-deep: #d98f16;
+        --dark-ale: #4a2410;
+        --dark-ale-deep: #2e1507;
+        --foam: #fdf6e3;
+        --good: #2e7d43;
+        --bad: #b3372a;
+        --shadow: rgba(60, 35, 8, .25);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --page: #17100a;
+          --page-ink: #f0e3c8;
+          --panel: #241708;
+          --panel-line: #57401c;
+          --wood: #5d3a1e;
+          --wood-dark: #38220f;
+          --shadow: rgba(0,0,0,.5);
+        }
+      }
+      html { -webkit-text-size-adjust: 100%; }
+      body {
+        margin: 0;
+        font-family: "Public Sans", system-ui, sans-serif;
+        background: var(--page);
+        color: var(--page-ink);
+        min-height: 100vh;
+      }
+      .wrap { max-width: 880px; margin: 0 auto; padding: 14px 14px 28px; }
+
+      /* ---------- Header / HUD ---------- */
+      header.top { text-align: center; padding: 6px 0 2px; }
+      header.top h1 {
+        font-family: "Playfair Display", Georgia, serif;
+        font-weight: 800; font-size: clamp(30px, 6vw, 44px);
+        margin: 0; letter-spacing: .5px; color: var(--page-ink);
+      }
+      header.top .tag { margin: 2px 0 0; font-size: 14px; opacity: .8; font-style: italic; }
+      .rule { display: flex; align-items: center; gap: 10px; margin: 12px auto 10px; max-width: 520px; }
+      .rule::before, .rule::after { content: ""; flex: 1; height: 2px; background: var(--brass); opacity: .7; }
+      .rule span { color: var(--brass); font-size: 13px; }
+
+      .hud {
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;
+      }
+      .hud .cell {
+        background: var(--panel); border: 1px solid var(--panel-line); border-radius: 10px;
+        padding: 8px 6px; text-align: center; box-shadow: 0 2px 6px var(--shadow);
+      }
+      .hud .k { font-size: 11px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; opacity: .65; }
+      .hud .v { font-size: 24px; font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums; }
+      .hud .v.clock-danger { color: var(--bad); animation: pulse .5s infinite alternate; }
+      @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.12); } }
+
+      /* ---------- Bar scene ---------- */
+      .scene {
+        background: linear-gradient(180deg, #2e1c0d 0%, #3d2712 55%, #2a180a 100%);
+        border: 3px solid var(--wood-dark); border-radius: 14px;
+        padding: 14px 12px 0; overflow: hidden; box-shadow: 0 8px 24px var(--shadow);
+        position: relative;
+      }
+      .scene .sign {
+        text-align: center; color: #e8cf8f; font-family: "Playfair Display", Georgia, serif;
+        font-size: 13px; letter-spacing: 3px; text-transform: uppercase; opacity: .85; margin-bottom: 10px;
+      }
+      .stools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+      .patron {
+        background: rgba(253, 246, 227, .06); border: 1px solid rgba(232, 207, 143, .25);
+        border-radius: 12px; padding: 10px 8px 12px; text-align: center; min-height: 178px;
+        display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+        cursor: pointer; -webkit-tap-highlight-color: transparent; user-select: none;
+      }
+      .patron.empty { opacity: .45; cursor: default; }
+      .patron .who { position: relative; width: 64px; height: 74px; }
+      .patron .bubble {
+        margin-top: 6px; background: var(--foam); color: #2c1c0e; border-radius: 999px;
+        padding: 5px 12px; font-weight: 800; font-size: 13px; letter-spacing: .6px;
+        display: inline-flex; align-items: center; gap: 6px; min-height: 28px;
+      }
+      .bubble .dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(0,0,0,.35); flex: none; }
+      .bubble .dot.light { background: var(--light-ale); }
+      .bubble .dot.dark { background: var(--dark-ale); }
+      .patience { width: 100%; height: 8px; border-radius: 99px; background: rgba(255,255,255,.18); margin-top: 9px; overflow: hidden; }
+      .patience i { display: block; height: 100%; background: var(--good); border-radius: 99px; transition: width .2s linear; }
+      .patience.low i { background: var(--bad); }
+      .patron.impatient { animation: shake .3s infinite; }
+      @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } }
+      .patron .waiting { color: #e8cf8f; font-size: 13px; margin-top: 26px; opacity: .7; font-style: italic; }
+      .patron.served-flash { animation: flash .35s; }
+      @keyframes flash { 0% { background: rgba(46,125,67,.55); } 100% { background: rgba(253,246,227,.06); } }
+      .patron.denied { animation: denied .3s; }
+      @keyframes denied { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+      .counter {
+        margin: 14px -12px 0; background: linear-gradient(180deg, var(--wood) 0%, var(--wood-dark) 100%);
+        border-top: 4px solid var(--brass); padding: 12px 14px 16px;
+        display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 8px;
+      }
+      .callout {
+        grid-column: 1 / -1; text-align: center; min-height: 26px; color: #fdf6e3;
+        font-weight: 800; font-size: 17px; letter-spacing: .3px; text-shadow: 0 1px 2px rgba(0,0,0,.5);
+      }
+      .callout.bad { color: #ff9d8a; }
+      .callout.good { color: #9fe6ae; }
+
+      /* ---------- Mug ---------- */
+      .mug-zone { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+      .mug-label { color: #e8cf8f; font-size: 12px; font-weight: 800; letter-spacing: 1.4px; text-transform: uppercase; min-height: 16px; }
+      svg.mug { display: block; }
+      .dump-btn {
+        background: #7a2d1e; color: #fdf6e3; border: 1px solid #a5503c; border-radius: 8px;
+        font: inherit; font-weight: 800; font-size: 13px; padding: 8px 14px; cursor: pointer; min-height: 38px;
+      }
+      .dump-btn:active { transform: translateY(1px); }
+
+      /* ---------- Taps ---------- */
+      .taps { display: flex; gap: 12px; justify-content: center; }
+      .tap {
+        flex: 1; max-width: 190px; border-radius: 12px; border: 2px solid rgba(0,0,0,.4);
+        padding: 12px 8px 10px; cursor: pointer; user-select: none; -webkit-user-select: none;
+        touch-action: none; -webkit-tap-highlight-color: transparent; font: inherit; color: #fff;
+        box-shadow: 0 4px 0 rgba(0,0,0,.35); text-align: center;
+      }
+      .tap:active, .tap.pouring { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.35); }
+      .tap.light { background: linear-gradient(180deg, #c07f10, #9c6608); }
+      .tap.dark { background: linear-gradient(180deg, #59331a, #3a1f0d); }
+      .tap .handle { font-size: 26px; line-height: 1; display: block; }
+      .tap .name { font-family: "Playfair Display", Georgia, serif; font-weight: 800; font-size: 21px; display: block; margin-top: 2px; }
+      .tap .hint { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; opacity: .85; }
+      .tap-col { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+      .tap-col .key { color: #e8cf8f; font-size: 11px; opacity: .75; }
+
+      /* ---------- Overlays ---------- */
+      .veil {
+        position: absolute; inset: 0; background: rgba(16, 9, 3, .82); z-index: 5;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        text-align: center; padding: 22px; color: #fdf6e3; border-radius: 11px;
+      }
+      .veil h2 { font-family: "Playfair Display", Georgia, serif; font-size: clamp(26px, 5vw, 38px); margin: 0 0 6px; color: #e8cf8f; }
+      .veil p { margin: 4px 0; font-size: 15px; line-height: 1.5; max-width: 430px; }
+      .veil .big { font-size: 20px; font-weight: 800; }
+      .veil .rank { color: var(--brass-bright); font-weight: 800; font-size: 18px; }
+      .play-btn {
+        margin-top: 16px; background: var(--brass); color: #241708; border: none; border-radius: 10px;
+        font: inherit; font-weight: 800; font-size: 18px; padding: 14px 34px; cursor: pointer; min-height: 52px;
+        box-shadow: 0 4px 0 #7c5a17;
+      }
+      .play-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #7c5a17; }
+      .veil.hidden { display: none; }
+
+      .howto {
+        margin-top: 14px; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 12px;
+        padding: 12px 16px; font-size: 14px; line-height: 1.6; box-shadow: 0 2px 6px var(--shadow);
+      }
+      .howto b { color: var(--brass); }
+      .foot { text-align: center; margin-top: 14px; font-style: italic; opacity: .75; font-size: 14px; }
+      .sound-btn {
+        position: absolute; top: 10px; right: 10px; z-index: 6; background: rgba(253,246,227,.12);
+        border: 1px solid rgba(232,207,143,.4); color: #fdf6e3; border-radius: 8px;
+        width: 40px; height: 40px; font-size: 18px; cursor: pointer;
+      }
+      @media (max-width: 560px) {
+        .hud .v { font-size: 19px; }
+        .patron { min-height: 164px; padding: 8px 4px 10px; }
+        .patron .who { transform: scale(.85); margin-bottom: -8px; }
+        .counter { grid-template-columns: 1fr; justify-items: center; }
+        .taps { width: 100%; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .patron.impatient, .hud .v.clock-danger { animation: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <h1>McSorley&rsquo;s</h1>
+        <p class="tag">Old Ale House &mdash; two choices since forever: light or dark.</p>
+        <div class="rule"><span>&#10022;</span></div>
+      </header>
+
+      <div class="hud" aria-live="polite">
+        <div class="cell"><div class="k">Clock</div><div class="v" id="hud-clock">1:15</div></div>
+        <div class="cell"><div class="k">Score</div><div class="v" id="hud-score">0</div></div>
+        <div class="cell"><div class="k">Pints</div><div class="v" id="hud-pints">0</div></div>
+        <div class="cell"><div class="k">Streak</div><div class="v" id="hud-streak">0</div></div>
+      </div>
+
+      <section class="scene" id="scene">
+        <button class="sound-btn" id="sound-btn" aria-label="Toggle sound">&#128266;</button>
+        <div class="sign">Est. 1854 &middot; We were here before you were born</div>
+
+        <div class="stools" id="stools"></div>
+
+        <div class="counter">
+          <div class="callout" id="callout">Pull up a stool &mdash; the shift is about to start.</div>
+
+          <div class="taps">
+            <div class="tap-col">
+              <button class="tap light" id="tap-light" aria-label="Hold to pour light ale">
+                <span class="handle"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><rect x="13" y="2" width="4" height="9" rx="2" fill="#fdf6e3"/><circle cx="15" cy="4" r="3.4" fill="#fdf6e3"/><path d="M6 13 h18 l-2.5 6 h-13 Z" fill="#e8cf8f"/><rect x="12.6" y="19" width="4.8" height="6" rx="1.5" fill="#fdf6e3"/><path d="M15 25 q-1 3 -3 3 M15 25 q1 3 3 3" stroke="#fdf6e3" stroke-width="1.6" fill="none"/></svg></span>
+                <span class="name">Light</span>
+                <span class="hint">Hold to pour</span>
+              </button>
+              <span class="key">hold L</span>
+            </div>
+            <div class="tap-col">
+              <button class="tap dark" id="tap-dark" aria-label="Hold to pour dark ale">
+                <span class="handle"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><rect x="13" y="2" width="4" height="9" rx="2" fill="#fdf6e3"/><circle cx="15" cy="4" r="3.4" fill="#fdf6e3"/><path d="M6 13 h18 l-2.5 6 h-13 Z" fill="#e8cf8f"/><rect x="12.6" y="19" width="4.8" height="6" rx="1.5" fill="#fdf6e3"/><path d="M15 25 q-1 3 -3 3 M15 25 q1 3 3 3" stroke="#fdf6e3" stroke-width="1.6" fill="none"/></svg></span>
+                <span class="name">Dark</span>
+                <span class="hint">Hold to pour</span>
+              </button>
+              <span class="key">hold D</span>
+            </div>
+          </div>
+
+          <div class="mug-zone">
+            <svg class="mug" width="104" height="128" viewBox="0 0 104 128" role="img" aria-label="The mug on the bar">
+              <!-- handle -->
+              <path d="M78 38 q26 8 22 34 q-3 24 -24 28" fill="none" stroke="#cfd6da" stroke-width="7" opacity=".85"/>
+              <!-- target zone band -->
+              <rect x="14" y="26" width="62" height="17" fill="rgba(46,125,67,.28)"/>
+              <rect x="14" y="31.5" width="62" height="6" fill="rgba(46,125,67,.4)"/>
+              <!-- liquid -->
+              <clipPath id="glassClip"><path d="M14 12 L20 116 Q21 122 28 122 L62 122 Q69 122 70 116 L76 12 Z"/></clipPath>
+              <g clip-path="url(#glassClip)">
+                <rect id="liquid" x="10" y="122" width="70" height="0" fill="#f2b53a"/>
+                <ellipse id="foam" cx="45" cy="122" rx="34" ry="6" fill="#fdf6e3" opacity="0"/>
+                <g id="splash" opacity="0">
+                  <circle cx="30" cy="8" r="3.4" fill="#fdf6e3"/><circle cx="45" cy="2" r="4" fill="#fdf6e3"/>
+                  <circle cx="60" cy="8" r="3.4" fill="#fdf6e3"/><circle cx="38" cy="14" r="2.6" fill="#fdf6e3"/>
+                  <circle cx="53" cy="14" r="2.6" fill="#fdf6e3"/>
+                </g>
+              </g>
+              <!-- glass -->
+              <path d="M14 12 L20 116 Q21 122 28 122 L62 122 Q69 122 70 116 L76 12" fill="none" stroke="#e8edef" stroke-width="3.5" opacity=".9"/>
+              <line x1="12" y1="26" x2="78" y2="26" stroke="#2e7d43" stroke-width="1.6" stroke-dasharray="4 3" opacity=".9"/>
+              <line x1="12" y1="43" x2="78" y2="43" stroke="#2e7d43" stroke-width="1.6" stroke-dasharray="4 3" opacity=".9"/>
+            </svg>
+            <div class="mug-label" id="mug-label">Mug empty</div>
+            <button class="dump-btn" id="dump-btn">Dump mug</button>
+          </div>
+
+          <div></div>
+        </div>
+
+        <div class="veil" id="start-veil">
+          <h2>Last call&rsquo;s a long way off.</h2>
+          <p>Patrons order <b>Light</b> or <b>Dark</b> &mdash; that&rsquo;s the whole menu. Hold a tap to pour, let go inside the green band for a proper pint, then tap the patron to serve.</p>
+          <p>Overfill it and it&rsquo;s foam all over the bar. Keep &rsquo;em waiting and they walk.</p>
+          <button class="play-btn" id="start-btn">Start the shift &mdash; 75 seconds</button>
+        </div>
+
+        <div class="veil hidden" id="end-veil">
+          <h2>That&rsquo;s the shift!</h2>
+          <p class="big" id="end-stats"></p>
+          <p class="rank" id="end-rank"></p>
+          <p id="end-line"></p>
+          <button class="play-btn" id="again-btn">Work another shift</button>
+        </div>
+      </section>
+
+      <div class="howto">
+        <b>How to pour:</b> Press and <b>hold</b> a tap (or hold <b>L</b> / <b>D</b>) and release when the ale reaches the green band &mdash; the inner stripe is a perfect pour, worth bonus points.
+        Short pour? Just hold again to top it up. Wrong ale in the mug, or a foam-over? Hit <b>Dump mug</b>.
+        Serve by tapping the patron (or pressing <b>1</b>, <b>2</b>, <b>3</b>). Tips shrink as patience drains, and the house gets busier &mdash; and thirstier &mdash; as the shift wears on.
+      </div>
+
+      <p class="foot">House rules: be good or be gone. Light or dark &mdash; no third choice, no apologies.</p>
+    </div>
+
+    <script>
+      (function () {
+        "use strict";
+
+        /* ================= State ================= */
+        var SHIFT_SECONDS = 75;
+        var ZONE_LO = 82, ZONE_HI = 97, SWEET_LO = 88, SWEET_HI = 94, OVER = 103;
+
+        var S = {
+          playing: false,
+          timeLeft: SHIFT_SECONDS,
+          elapsed: 0,
+          score: 0,
+          pints: 0,
+          streak: 0,
+          bestStreak: 0,
+          walkouts: 0,
+          pouring: null,           // 'light' | 'dark' | null
+          mug: { ale: null, fill: 0, ready: false },
+          patrons: [null, null, null],
+          spawnIn: [0.2, 0.9, 1.6],
+          lastTs: 0,
+          muted: false
+        };
+
+        var NAMES = ["Todd", "Jim", "Martin"];
+        var SHIRTS = ["#7a4a21", "#33526b", "#5d6e35", "#71363b", "#4c3a63", "#84602a", "#2f5d54", "#6e3d55"];
+        var SKINS = ["#f2c49b", "#e0a878", "#c98a5a", "#a06844", "#8a5636", "#f6d3ac"];
+        var HAIRS = ["#3a2a18", "#6e5136", "#b8b0a4", "#202020", "#8c3b1e", "#d9c08a"];
+
+        /* ================= DOM ================= */
+        function $(id) { return document.getElementById(id); }
+        var elClock = $("hud-clock"), elScore = $("hud-score"), elPints = $("hud-pints"), elStreak = $("hud-streak");
+        var elCallout = $("callout"), elLiquid = $("liquid"), elFoam = $("foam"), elSplash = $("splash");
+        var elMugLabel = $("mug-label"), elStools = $("stools");
+        var elStartVeil = $("start-veil"), elEndVeil = $("end-veil");
+
+        var patronEls = [];
+        function buildStools() {
+          elStools.innerHTML = "";
+          patronEls = [];
+          for (var i = 0; i < 3; i++) {
+            (function (idx) {
+              var d = document.createElement("div");
+              d.className = "patron empty";
+              d.setAttribute("role", "button");
+              d.setAttribute("aria-label", "Bar stool " + (idx + 1));
+              d.innerHTML = '<div class="waiting">stool open&hellip;</div>';
+              d.addEventListener("click", function () { serve(idx); });
+              elStools.appendChild(d);
+              patronEls.push(d);
+            })(i);
+          }
+        }
+
+        function patronSVG(p) {
+          return '<svg width="64" height="74" viewBox="0 0 64 74" aria-hidden="true">' +
+            '<path d="M10 74 q2 -22 22 -22 t22 22 Z" fill="' + p.shirt + '"/>' +
+            '<circle cx="32" cy="34" r="17" fill="' + p.skin + '"/>' +
+            '<path d="M15 32 a17 17 0 0 1 34 0 l0 -4 a17 12 0 0 0 -34 0 Z" fill="' + p.hair + '"/>' +
+            '<circle cx="26" cy="35" r="2" fill="#241708"/><circle cx="38" cy="35" r="2" fill="#241708"/>' +
+            (p.grumpy
+              ? '<path d="M26 45 q6 -3 12 0" stroke="#241708" stroke-width="2" fill="none" stroke-linecap="round"/>'
+              : '<path d="M26 43 q6 4 12 0" stroke="#241708" stroke-width="2" fill="none" stroke-linecap="round"/>') +
+            '</svg>';
+        }
+
+        function renderPatron(i) {
+          var p = S.patrons[i], d = patronEls[i];
+          if (!p) {
+            d.className = "patron empty";
+            d.innerHTML = '<div class="waiting">stool open&hellip;</div>';
+            return;
+          }
+          d.className = "patron" + (p.grumpy ? " impatient" : "");
+          d.innerHTML =
+            '<div class="who">' + patronSVG(p) + '</div>' +
+            '<div class="bubble"><span class="dot ' + p.order + '"></span>' + p.name + ': ' + (p.order === "light" ? "LIGHT" : "DARK") + '</div>' +
+            '<div class="patience' + (p.grumpy ? " low" : "") + '"><i style="width:' + Math.max(0, Math.round(p.patience * 100)) + '%"></i></div>';
+        }
+
+        function renderAllPatrons() { for (var i = 0; i < 3; i++) renderPatron(i); }
+
+        /* ================= Sound (synthesized, in-memory) ================= */
+        var AC = null, pourNode = null;
+        function audio() {
+          if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } }
+          if (AC && AC.state === "suspended") AC.resume();
+          return AC;
+        }
+        function blip(freq, dur, type, gain, when) {
+          if (S.muted) return;
+          var ac = audio(); if (!ac) return;
+          var t = ac.currentTime + (when || 0);
+          var o = ac.createOscillator(), g = ac.createGain();
+          o.type = type || "sine"; o.frequency.value = freq;
+          g.gain.setValueAtTime(gain || 0.12, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+          o.connect(g); g.connect(ac.destination);
+          o.start(t); o.stop(t + dur + 0.02);
+        }
+        function startPourSound() {
+          if (S.muted) return;
+          var ac = audio(); if (!ac || pourNode) return;
+          var len = ac.sampleRate * 1.2;
+          var buf = ac.createBuffer(1, len, ac.sampleRate);
+          var data = buf.getChannelData(0);
+          for (var i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+          var src = ac.createBufferSource(); src.buffer = buf; src.loop = true;
+          var f = ac.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 900; f.Q.value = 0.7;
+          var g = ac.createGain(); g.gain.value = 0.05;
+          src.connect(f); f.connect(g); g.connect(ac.destination);
+          src.start();
+          pourNode = { src: src, g: g };
+        }
+        function stopPourSound() {
+          if (!pourNode) return;
+          try { pourNode.g.gain.setTargetAtTime(0.0001, AC.currentTime, 0.05); pourNode.src.stop(AC.currentTime + 0.25); } catch (e) {}
+          pourNode = null;
+        }
+        function sndServe(perfect) { blip(660, 0.12, "triangle", 0.14); blip(880, 0.16, "triangle", 0.14, 0.08); if (perfect) blip(1320, 0.22, "sine", 0.12, 0.16); }
+        function sndBad() { blip(160, 0.22, "sawtooth", 0.08); }
+        function sndSplash() { blip(300, 0.1, "square", 0.05); blip(190, 0.18, "square", 0.05, 0.06); }
+        function sndBell() { blip(1180, 0.3, "sine", 0.1); }
+
+        /* ================= Callout ================= */
+        var calloutTimer = 0;
+        function say(msg, kind) {
+          elCallout.textContent = msg;
+          elCallout.className = "callout" + (kind ? " " + kind : "");
+          calloutTimer = 2.6;
+        }
+
+        /* ================= Mug ================= */
+        function mugColor() {
+          if (!S.mug.ale) return "#f2b53a";
+          return S.mug.ale === "light" ? "#f2b53a" : "#4a2410";
+        }
+        function renderMug() {
+          var fill = S.mug.fill;
+          var h = Math.min(fill, 100) / 100 * 104; // glass interior ~ y 18..122
+          elLiquid.setAttribute("y", String(122 - h));
+          elLiquid.setAttribute("height", String(h));
+          elLiquid.setAttribute("fill", mugColor());
+          var foamY = 122 - h;
+          elFoam.setAttribute("cy", String(foamY));
+          elFoam.setAttribute("opacity", fill > 4 ? "0.95" : "0");
+          elFoam.setAttribute("rx", String(30 + Math.min(fill, 100) / 100 * 4));
+          if (!S.mug.ale || fill <= 0.5) elMugLabel.textContent = "Mug empty";
+          else if (S.mug.ready) elMugLabel.textContent = (S.mug.ale === "light" ? "Light" : "Dark") + " — ready!";
+          else elMugLabel.textContent = (S.mug.ale === "light" ? "Light" : "Dark") + " — " + Math.round(fill) + "%";
+        }
+        function clearMug() {
+          S.mug.ale = null; S.mug.fill = 0; S.mug.ready = false;
+          renderMug();
+        }
+        function splashFX() {
+          elSplash.setAttribute("opacity", "1");
+          setTimeout(function () { elSplash.setAttribute("opacity", "0"); }, 320);
+        }
+
+        /* ================= Pouring ================= */
+        function startPour(type) {
+          if (!S.playing || S.pouring) return;
+          audio();
+          if (S.mug.ale && S.mug.ale !== type && S.mug.fill > 1) {
+            // Mixing light into dark (or the reverse) ruins the pint.
+            S.pouring = null;
+            splashFX(); sndSplash();
+            say("You mixed " + type + " into " + S.mug.ale + " — that pint's ruined. Dump it!", "bad");
+            S.mug.ready = false;
+            S.mug.fill = Math.min(S.mug.fill + 6, 100);
+            elLiquid.setAttribute("fill", "#7a5a20");
+            elMugLabel.textContent = "Ruined — dump it";
+            S.mug.ale = "mixed";
+            return;
+          }
+          if (S.mug.ale === "mixed") { say("Dump that ruined pint first!", "bad"); sndBad(); return; }
+          S.mug.ale = type;
+          S.pouring = type;
+          document.querySelector(type === "light" ? "#tap-light" : "#tap-dark").classList.add("pouring");
+          startPourSound();
+        }
+        function stopPour() {
+          if (!S.pouring) return;
+          S.pouring = null;
+          stopPourSound();
+          var btns = document.querySelectorAll(".tap");
+          for (var i = 0; i < btns.length; i++) btns[i].classList.remove("pouring");
+          if (!S.playing) return;
+          var f = S.mug.fill;
+          if (f >= ZONE_LO && f <= ZONE_HI) {
+            S.mug.ready = true;
+            if (f >= SWEET_LO && f <= SWEET_HI) say("Perfect pour! Now hand it over.", "good");
+            else say("Good pint — serve it!", "good");
+            blip(520, 0.1, "triangle", 0.1);
+          } else if (f > ZONE_HI && f <= OVER) {
+            S.mug.ready = false;
+            say("All head, no ale — top it carefully or dump it.", "bad");
+          } else if (f > 0) {
+            S.mug.ready = false;
+            say("Short pour — hold the tap to top it up.", "");
+          }
+          renderMug();
+        }
+        function overflow() {
+          S.pouring = null;
+          stopPourSound();
+          var btns = document.querySelectorAll(".tap");
+          for (var i = 0; i < btns.length; i++) btns[i].classList.remove("pouring");
+          splashFX(); sndSplash();
+          say("Foam over the bar! That one's a total loss.", "bad");
+          S.streak = 0;
+          clearMug();
+          updateHUD();
+        }
+
+        /* ================= Patrons ================= */
+        function spawnPatron(i) {
+          var ramp = Math.min(S.elapsed / SHIFT_SECONDS, 1);
+          var patienceTotal = 30 - ramp * 11; // 30s early, ~19s late
+          S.patrons[i] = {
+            name: NAMES[Math.floor(Math.random() * NAMES.length)],
+            order: Math.random() < 0.5 ? "light" : "dark",
+            shirt: SHIRTS[Math.floor(Math.random() * SHIRTS.length)],
+            skin: SKINS[Math.floor(Math.random() * SKINS.length)],
+            hair: HAIRS[Math.floor(Math.random() * HAIRS.length)],
+            patience: 1,
+            patienceTotal: patienceTotal,
+            grumpy: false
+          };
+          renderPatron(i);
+        }
+        function serve(i) {
+          if (!S.playing) return;
+          var p = S.patrons[i];
+          if (!p) return;
+          var d = patronEls[i];
+          if (S.mug.ale === "mixed") { say("Nobody's drinking that — dump it first!", "bad"); sndBad(); return; }
+          if (!S.mug.ready) {
+            say(S.mug.fill > 0 ? "That pint isn't finished — fill it to the green band." : "Nothing to serve — pour a pint first!", "bad");
+            sndBad();
+            d.classList.remove("denied"); void d.offsetWidth; d.classList.add("denied");
+            return;
+          }
+          if (S.mug.ale !== p.order) {
+            say(p.name + " ordered " + (p.order === "light" ? "LIGHT" : "DARK") + ", not " + (S.mug.ale === "light" ? "light" : "dark") + "!", "bad");
+            sndBad();
+            d.classList.remove("denied"); void d.offsetWidth; d.classList.add("denied");
+            return;
+          }
+          var f = S.mug.fill;
+          var perfect = f >= SWEET_LO && f <= SWEET_HI;
+          var tip = Math.round(p.patience * 10);
+          var pts = 10 + tip + (perfect ? 5 : 0);
+          S.score += pts;
+          S.pints += 1;
+          if (perfect) { S.streak += 1; S.bestStreak = Math.max(S.bestStreak, S.streak); }
+          else S.streak = 0;
+          sndServe(perfect);
+          say(perfect ? "Perfect pour for " + p.name + "! +" + pts : p.name + " nods approval. +" + pts, "good");
+          d.classList.remove("served-flash"); void d.offsetWidth; d.classList.add("served-flash");
+          S.patrons[i] = null;
+          S.spawnIn[i] = 0.7 + Math.random() * 1.4;
+          clearMug();
+          setTimeout(function () { renderPatron(i); }, 60);
+          updateHUD();
+        }
+
+        /* ================= HUD / clock ================= */
+        function fmt(t) {
+          t = Math.max(0, Math.ceil(t));
+          return Math.floor(t / 60) + ":" + ("0" + (t % 60)).slice(-2);
+        }
+        function updateHUD() {
+          elClock.textContent = fmt(S.timeLeft);
+          elClock.className = "v" + (S.timeLeft <= 10 && S.playing ? " clock-danger" : "");
+          elScore.textContent = S.score;
+          elPints.textContent = S.pints;
+          elStreak.textContent = S.streak;
+        }
+
+        /* ================= Game flow ================= */
+        function startGame() {
+          S.playing = true;
+          S.timeLeft = SHIFT_SECONDS; S.elapsed = 0;
+          S.score = 0; S.pints = 0; S.streak = 0; S.bestStreak = 0; S.walkouts = 0;
+          S.patrons = [null, null, null];
+          S.spawnIn = [0.15, 0.8, 1.5];
+          clearMug();
+          renderAllPatrons();
+          updateHUD();
+          elStartVeil.classList.add("hidden");
+          elEndVeil.classList.add("hidden");
+          say("Shift's on! First orders coming in…", "");
+          sndBell();
+          S.lastTs = performance.now();
+          requestAnimationFrame(loop);
+        }
+        function endGame() {
+          S.playing = false;
+          stopPourSound();
+          S.pouring = null;
+          var rank, line;
+          if (S.pints >= 18) { rank = "Legend of the House"; line = "They'll be telling stories about this shift for a hundred years."; }
+          else if (S.pints >= 13) { rank = "Head Bartender"; line = "Smooth hands, fast taps, happy house."; }
+          else if (S.pints >= 9) { rank = "Seasoned Hand"; line = "A solid shift — the regulars approve."; }
+          else if (S.pints >= 5) { rank = "Barback"; line = "Getting the hang of the taps. The foam incidents are forgiven."; }
+          else { rank = "First Shift"; line = "Everyone starts somewhere. The mops are by the door."; }
+          $("end-stats").textContent = S.score + " points · " + S.pints + " pints served · best streak " + S.bestStreak + (S.walkouts ? " · " + S.walkouts + " walked out" : "");
+          $("end-rank").textContent = "House rank: " + rank;
+          $("end-line").textContent = line;
+          elEndVeil.classList.remove("hidden");
+          say("Time! Last call.", "");
+          sndBell();
+        }
+
+        function loop(ts) {
+          if (!S.playing) return;
+          var dt = Math.min((ts - S.lastTs) / 1000, 0.05);
+          S.lastTs = ts;
+          S.elapsed += dt;
+          S.timeLeft -= dt;
+          if (calloutTimer > 0) calloutTimer -= dt;
+
+          // Pouring
+          if (S.pouring) {
+            var rate = 52 + Math.min(S.elapsed / SHIFT_SECONDS, 1) * 14;
+            S.mug.fill += rate * dt;
+            S.mug.ready = false;
+            if (S.mug.fill >= OVER) { overflow(); }
+            else renderMug();
+          }
+
+          // Patrons
+          for (var i = 0; i < 3; i++) {
+            var p = S.patrons[i];
+            if (!p) {
+              S.spawnIn[i] -= dt;
+              if (S.spawnIn[i] <= 0) spawnPatron(i);
+              continue;
+            }
+            p.patience -= dt / p.patienceTotal;
+            if (p.patience <= 0.3 && !p.grumpy) { p.grumpy = true; renderPatron(i); }
+            if (p.patience <= 0) {
+              say(p.name + " walked out thirsty!", "bad");
+              sndBad();
+              S.walkouts += 1;
+              S.streak = 0;
+              S.patrons[i] = null;
+              S.spawnIn[i] = 0.8 + Math.random() * 1.2;
+              renderPatron(i);
+              updateHUD();
+            } else {
+              var bar = patronEls[i].querySelector(".patience i");
+              if (bar) bar.style.width = Math.max(0, Math.round(p.patience * 100)) + "%";
+            }
+          }
+
+          updateHUD();
+          if (S.timeLeft <= 0) { endGame(); return; }
+          requestAnimationFrame(loop);
+        }
+
+        /* ================= Controls ================= */
+        function bindTap(id, type) {
+          var b = $(id);
+          b.addEventListener("pointerdown", function (e) { e.preventDefault(); b.setPointerCapture && e.pointerId !== undefined && b.setPointerCapture(e.pointerId); startPour(type); });
+          b.addEventListener("pointerup", function (e) { e.preventDefault(); stopPour(); });
+          b.addEventListener("pointercancel", stopPour);
+          b.addEventListener("lostpointercapture", stopPour);
+          b.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+        }
+        bindTap("tap-light", "light");
+        bindTap("tap-dark", "dark");
+
+        $("dump-btn").addEventListener("click", function () {
+          if (!S.playing) return;
+          if (S.mug.fill <= 0 && !S.mug.ale) { say("Mug's already empty.", ""); return; }
+          stopPour();
+          splashFX(); sndSplash();
+          clearMug();
+          say("Down the sink. Fresh mug, fresh start.", "");
+        });
+
+        document.addEventListener("keydown", function (e) {
+          if (e.repeat) return;
+          var k = e.key.toLowerCase();
+          if (k === "l") startPour("light");
+          else if (k === "d") startPour("dark");
+          else if (k === "1") serve(0);
+          else if (k === "2") serve(1);
+          else if (k === "3") serve(2);
+        });
+        document.addEventListener("keyup", function (e) {
+          var k = e.key.toLowerCase();
+          if ((k === "l" && S.pouring === "light") || (k === "d" && S.pouring === "dark")) stopPour();
+        });
+
+        $("sound-btn").addEventListener("click", function () {
+          S.muted = !S.muted;
+          this.innerHTML = S.muted ? "&#128263;" : "&#128266;";
+          if (S.muted) stopPourSound();
+        });
+        $("start-btn").addEventListener("click", startGame);
+        $("again-btn").addEventListener("click", startGame);
+
+        buildStools();
+        renderMug();
+        updateHUD();
+      })();
+    </script>
+  </body>
+</html>
