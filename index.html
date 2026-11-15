@@ -296,6 +296,15 @@
 
       .foot { text-align: center; margin-top: 14px; font-style: italic; opacity: .8; font-size: 14px; }
       .foot .sham { color: var(--irish-bright); font-style: normal; }
+      .house-tally {
+        margin-top: 12px; background: var(--panel); border: 1px solid var(--panel-line); border-top: 3px solid var(--irish);
+        border-radius: 10px; padding: 10px 16px 12px; box-shadow: 0 2px 6px var(--shadow);
+        display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 32px; text-align: center;
+      }
+      .house-tally .tally-item { display: inline-flex; align-items: baseline; gap: 8px; }
+      .house-tally .tally-k { font-size: 11px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; opacity: .65; }
+      .house-tally .tally-v { font-size: 22px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; color: var(--irish-ink); }
+      .house-tally .tally-sham { color: var(--irish-bright); font-size: 13px; }
       .sound-btn {
         position: absolute; top: 10px; right: 10px; z-index: 6; background: rgba(253,246,227,.12);
         border: 1px solid rgba(232,207,143,.4); color: #fdf6e3; border-radius: 8px;
@@ -601,6 +610,12 @@
       </section>
 
       <p class="foot"><span class="sham">&#9752;</span> House rules: be good or be gone. Light or dark &mdash; no third choice, no apologies. May the road rise to meet you &mdash; and may your pint always pour true. <span class="sham">&#9752;</span></p>
+
+      <div class="house-tally" aria-live="polite" aria-label="House tally">
+        <span class="tally-item"><span class="tally-k">Page visits</span><span class="tally-v" id="tally-visits">—</span></span>
+        <span class="tally-sham" aria-hidden="true">&#9752;</span>
+        <span class="tally-item"><span class="tally-k">Games played</span><span class="tally-v" id="tally-games">—</span></span>
+      </div>
     </div>
 
     <div class="lightbox hidden" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer">
@@ -617,6 +632,42 @@
     <script>
       (function () {
         "use strict";
+
+        /* ================= House tally (visits & games) ================= */
+        var TALLY_VISITS_KEY = "mcsorleys_visits_v1";
+        var TALLY_GAMES_KEY = "mcsorleys_games_v1";
+        var tallyFallback = {};
+        function tallyRead(key) {
+          try {
+            var v = parseInt(window.localStorage.getItem(key) || "0", 10);
+            return isFinite(v) && v > 0 ? v : 0;
+          } catch (e) {
+            return tallyFallback[key] || 0;
+          }
+        }
+        function tallyWrite(key, val) {
+          tallyFallback[key] = val;
+          try { window.localStorage.setItem(key, String(val)); } catch (e) {}
+        }
+        function tallyBump(key) {
+          var next = tallyRead(key) + 1;
+          tallyWrite(key, next);
+          return next;
+        }
+        function renderTally() {
+          var vEl = document.getElementById("tally-visits");
+          var gEl = document.getElementById("tally-games");
+          if (vEl) vEl.textContent = tallyRead(TALLY_VISITS_KEY).toLocaleString("en-US");
+          if (gEl) gEl.textContent = tallyRead(TALLY_GAMES_KEY).toLocaleString("en-US");
+        }
+        function countVisit() {
+          tallyBump(TALLY_VISITS_KEY);
+          renderTally();
+        }
+        function countGamePlayed() {
+          tallyBump(TALLY_GAMES_KEY);
+          renderTally();
+        }
 
         /* ================= State ================= */
         var SHIFT_SECONDS = 75;
@@ -1446,6 +1497,7 @@
 
         /* ================= Game flow ================= */
         function startGame() {
+          countGamePlayed();
           S.playing = true;
           hasInteracted = true;
           pickBartender({ speak: true });
@@ -1748,6 +1800,7 @@
         buildLanes();
         renderMug();
         updateHUD();
+        countVisit();
         pickBartender();
         scheduleBartender();
       })();
