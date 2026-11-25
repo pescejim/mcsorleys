@@ -314,6 +314,32 @@
       .house-tally .tally-k { font-size: 11px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; opacity: .65; }
       .house-tally .tally-v { font-size: 22px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; color: var(--irish-ink); }
       .house-tally .tally-sham { color: var(--irish-bright); font-size: 13px; }
+      /* ---------- Share game ---------- */
+      .share-game {
+        margin-top: 14px; background: var(--panel); border: 1px solid var(--panel-line); border-top: 4px solid var(--irish);
+        border-radius: 12px; padding: 18px 16px 20px; box-shadow: 0 2px 6px var(--shadow); text-align: center;
+      }
+      .share-game h2 { font-family: "Playfair Display", Georgia, serif; font-weight: 800; font-size: 24px; margin: 0 0 4px; color: var(--irish-ink); }
+      .share-game p { margin: 0 auto 14px; font-size: 14.5px; line-height: 1.5; max-width: 520px; opacity: .9; }
+      .share-btn {
+        background: var(--irish); color: #fdf6e3; border: none; border-radius: 999px;
+        font: inherit; font-weight: 800; font-size: 16px; padding: 13px 26px; cursor: pointer; min-height: 50px;
+        box-shadow: 0 4px 0 var(--irish-dark); display: inline-flex; align-items: center; gap: 9px;
+      }
+      .share-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--irish-dark); }
+      .share-btn .share-icon { font-size: 19px; line-height: 1; }
+      .share-qr { margin-top: 18px; }
+      .share-qr.hidden { display: none; }
+      .share-qr-card {
+        display: inline-block; background: #fff; border: 2px solid var(--panel-line); border-radius: 16px;
+        padding: 16px 16px 12px; box-shadow: 0 6px 18px var(--shadow);
+      }
+      .share-qr-card img { display: block; width: 220px; height: 220px; max-width: 72vw; max-height: 72vw; }
+      @media (max-width: 420px) { .share-qr-card img { width: 200px; height: 200px; } }
+      .share-qr-cap { margin: 12px 0 2px; font-weight: 800; font-size: 14px; color: var(--page-ink); }
+      .share-url { display: inline-block; margin-top: 6px; font-size: 14px; font-weight: 700; color: var(--irish-ink); text-decoration: underline; text-underline-offset: 3px; word-break: break-all; }
+      .share-url:hover { color: var(--irish); }
+      .share-hint { margin: 10px auto 0 !important; font-size: 13px !important; opacity: .75 !important; max-width: 420px; }
       .sound-btn {
         position: absolute; top: 10px; right: 10px; z-index: 6; background: rgba(253,246,227,.12);
         border: 1px solid rgba(232,207,143,.4); color: #fdf6e3; border-radius: 8px;
@@ -661,6 +687,24 @@
         <span class="tally-sham" aria-hidden="true">&#9752;</span>
         <span class="tally-item"><span class="tally-k">Games played</span><span class="tally-v" id="tally-games">—</span></span>
       </div>
+
+      <section class="share-game" aria-label="Share this game">
+        <h2><span aria-hidden="true">&#9752;</span> Pass it on</h2>
+        <p>Know someone who&rsquo;d love a shift behind the bar? Show them this code and they can jump straight into the game on their own phone.</p>
+        <button class="share-btn" id="share-toggle" type="button" aria-expanded="false" aria-controls="share-qr">
+          <span class="share-icon" aria-hidden="true">&#9638;</span> Share game
+        </button>
+        <div class="share-qr hidden" id="share-qr">
+          <div class="share-qr-card">
+            <img src="data:image/png;base64,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" alt="QR code linking to the published McSorley's game at pescejim.github.io/mcsorleys" width="220" height="220" />
+            <p class="share-qr-cap">Point a phone camera here to play</p>
+          </div>
+          <div>
+            <a class="share-url" href="https://pescejim.github.io/mcsorleys/" target="_blank" rel="noopener">pescejim.github.io/mcsorleys</a>
+          </div>
+          <p class="share-hint">Tap Share game again to hide the code.</p>
+        </div>
+      </section>
     </div>
 
     <div class="lightbox hidden" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer">
@@ -2004,6 +2048,24 @@
               toggle.setAttribute("aria-expanded", String(!hide));
             });
           }
+        })();
+
+        /* Share game — QR toggle at the bottom of the page */
+        (function () {
+          var btn = document.getElementById("share-toggle");
+          var panel = document.getElementById("share-qr");
+          if (!btn || !panel) return;
+          btn.addEventListener("click", function () {
+            var willShow = panel.classList.contains("hidden");
+            panel.classList.toggle("hidden", !willShow);
+            btn.setAttribute("aria-expanded", String(willShow));
+            btn.innerHTML = willShow
+              ? '<span class="share-icon" aria-hidden="true">&#9638;</span> Hide QR code'
+              : '<span class="share-icon" aria-hidden="true">&#9638;</span> Share game';
+            if (willShow) {
+              try { panel.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) {}
+            }
+          });
         })();
 
         buildStools();
