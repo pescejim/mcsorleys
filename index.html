@@ -348,7 +348,13 @@
         position: relative; height: 74px; border-radius: 10px; margin-bottom: 10px; overflow: hidden;
         background: linear-gradient(180deg, rgba(253,246,227,.05) 0 58%, #5a3a1c 58% 78%, #3c2510 78% 100%);
         border: 1px solid rgba(232,207,143,.28); cursor: pointer; -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation; user-select: none; -webkit-user-select: none;
       }
+      /* While a Tapper game is running, touches on the bars belong to the
+         game — no page scroll or pull-to-refresh stealing a swipe. */
+      body.playing .lane { touch-action: none; }
+      body.playing #tapper-controls { touch-action: none; }
+      .lane.touched { border-color: #fdf6e3; }
       .lane.active { border-color: var(--brass-bright); box-shadow: 0 0 0 2px var(--brass) inset; }
       .lane .lane-no {
         position: absolute; left: 6px; top: 6px; width: 20px; height: 20px; border-radius: 50%;
@@ -369,21 +375,42 @@
         border-top: 4px solid var(--irish-bright); padding: 12px 14px 16px;
         display: flex; flex-direction: column; gap: 10px;
       }
+      .tapper-lane-jump { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+      .t-lane-btn {
+        border-radius: 10px; border: 2px solid rgba(0,0,0,.4); padding: 10px 4px; cursor: pointer;
+        font: inherit; font-weight: 800; font-size: 15px; color: #e8cf8f; background: rgba(0,0,0,.28);
+        box-shadow: 0 3px 0 rgba(0,0,0,.35); user-select: none; -webkit-user-select: none;
+        touch-action: none; -webkit-tap-highlight-color: transparent; min-height: 52px;
+      }
+      .t-lane-btn.active { background: var(--irish); color: #fdf6e3; border-color: rgba(253,246,227,.65); }
+      .t-lane-btn:active, .t-lane-btn.pressing { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.35); }
       .tapper-btns { display: grid; grid-template-columns: 1fr 1fr 1.6fr; gap: 10px; }
       .t-btn {
-        border-radius: 12px; border: 2px solid rgba(0,0,0,.4); padding: 12px 6px; cursor: pointer;
+        border-radius: 12px; border: 2px solid rgba(0,0,0,.4); padding: 14px 6px; cursor: pointer;
         font: inherit; font-weight: 800; font-size: 16px; color: #fdf6e3; background: #59331a;
-        box-shadow: 0 4px 0 rgba(0,0,0,.35); user-select: none; -webkit-user-select: none; touch-action: manipulation;
+        box-shadow: 0 4px 0 rgba(0,0,0,.35); user-select: none; -webkit-user-select: none; touch-action: none;
+        -webkit-tap-highlight-color: transparent; min-height: 58px;
       }
-      .t-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.35); }
-      .t-btn.slide { background: linear-gradient(180deg, #c07f10, #9c6608); font-size: 18px; }
-      .tapper-keys { text-align: center; color: #e8cf8f; font-size: 11.5px; opacity: .8; }
+      .t-btn:active, .t-btn.pressing { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.35); }
+      .t-btn.slide { background: linear-gradient(180deg, #c07f10, #9c6608); font-size: 19px; }
+      .tapper-keys { text-align: center; color: #e8cf8f; font-size: 11.5px; opacity: .8; line-height: 1.5; }
+      .tapper-touch-hint { text-align: center; color: #fdf6e3; font-size: 12.5px; font-weight: 700; opacity: .92; line-height: 1.45; }
+      @media (pointer: coarse) {
+        .lane { height: 78px; }
+        .t-btn { min-height: 64px; font-size: 17px; }
+        .t-btn.slide { font-size: 21px; }
+        .t-lane-btn { min-height: 56px; font-size: 16px; }
+      }
       .play-btn.secondary { background: transparent; color: #e8cf8f; border: 2px solid var(--brass); box-shadow: none; font-size: 15px; padding: 10px 22px; min-height: 46px; margin-top: 10px; }
       @media (max-width: 560px) {
         .mode-picker { grid-template-columns: 1fr; }
-        .lane { height: 66px; }
+        .lane { height: 70px; }
         .tapper-btns { grid-template-columns: 1fr 1fr; }
-        .t-btn.slide { grid-column: 1 / -1; }
+        .t-btn.slide { grid-column: 1 / -1; order: 3; }
+        .tapper-lane-jump { gap: 6px; }
+      }
+      @media (max-width: 560px) and (pointer: coarse) {
+        .lane { height: 74px; }
       }
       @media (prefers-reduced-motion: reduce) {
         .patron.impatient, .hud .v.clock-danger, .tapper-sign .coin, .bartender-bar.pop .bt-text { animation: none; }
@@ -409,7 +436,7 @@
       <div class="mode-picker" role="group" aria-label="Choose which game to play">
         <button class="mode-btn active" id="mode-classic" aria-pressed="true">
           <span class="mb-name">&#9752; Classic Shift</span>
-          <span class="mb-sub">The original Irish shift: three stools, hold the tap, pour to the green band, serve the lads &mdash; Todd, Jim, Matt, Martin, Ron, Billy, Tommy, Darren &amp; Col. Clancy, rotating through all night.</span>
+          <span class="mb-sub">The original Irish shift: three stools, hold the tap, pour to the green band, serve the lads &mdash; Todd, Jim, the two Matts, Martin, Ron, Billy, Tommy, Darren &amp; Col. Clancy, rotating through all night.</span>
         </button>
         <button class="mode-btn" id="mode-tapper" aria-pressed="false">
           <span class="mb-name">&#9752; Tapper &rsquo;83</span>
@@ -491,14 +518,21 @@
         <div id="tapper-play" hidden>
           <div class="tapper-sign">&#9752; Tapper &rsquo;83 &middot; Four Irish bars &middot; <span class="coin">Insert coin</span> &#9752;</div>
           <div id="lanes"></div>
-          <div class="tapper-controls">
+          <div class="tapper-controls" id="tapper-controls">
             <div class="callout" id="tapper-callout">&#9752; Pick a bar, slide a mug, catch the empty.</div>
-            <div class="tapper-btns">
-              <button class="t-btn" id="t-up" aria-label="Move to the bar above">&#9650; Bar up</button>
-              <button class="t-btn" id="t-down" aria-label="Move to the bar below">&#9660; Bar down</button>
-              <button class="t-btn slide" id="t-slide">&#9664; Slide a mug</button>
+            <div class="tapper-lane-jump" role="group" aria-label="Jump straight to a bar — touch controls">
+              <button class="t-lane-btn active" id="t-lane-0" type="button" aria-label="Jump to bar 1" aria-pressed="true">Bar 1</button>
+              <button class="t-lane-btn" id="t-lane-1" type="button" aria-label="Jump to bar 2" aria-pressed="false">Bar 2</button>
+              <button class="t-lane-btn" id="t-lane-2" type="button" aria-label="Jump to bar 3" aria-pressed="false">Bar 3</button>
+              <button class="t-lane-btn" id="t-lane-3" type="button" aria-label="Jump to bar 4" aria-pressed="false">Bar 4</button>
             </div>
-            <div class="tapper-keys">Tap a bar to jump to it &middot; &#8593; / &#8595; or W / S to move &middot; Space to slide &middot; 1&ndash;4 picks a bar</div>
+            <div class="tapper-btns">
+              <button class="t-btn" id="t-up" type="button" aria-label="Move to the bar above">&#9650; Bar up</button>
+              <button class="t-btn" id="t-down" type="button" aria-label="Move to the bar below">&#9660; Bar down</button>
+              <button class="t-btn slide" id="t-slide" type="button" aria-label="Slide a mug down the current bar">&#9664; Slide a mug</button>
+            </div>
+            <p class="tapper-touch-hint">Touch: tap a bar or a Bar 1&ndash;4 button to jump there &middot; swipe up / down on the bars to move &middot; tap the taps end of your bar — or the big Slide button — to slide a mug</p>
+            <div class="tapper-keys">Keyboard: &#8593; / &#8595; or W / S to move &middot; Space to slide &middot; 1&ndash;4 picks a bar</div>
           </div>
         </div>
 
@@ -522,13 +556,13 @@
       <div class="howto" id="howto-classic">
         <b>&#9752; How to pour, Irish style:</b> Press and <b>hold</b> a tap (or hold <b>L</b> / <b>D</b>) and release when the ale reaches the green band &mdash; the inner stripe is a perfect pour, worth bonus points.
         Short pour? Just hold again to top it up. Wrong ale in the mug, or a foam-over? Hit <b>Dump mug</b>.
-        Serve by tapping the patron (or pressing <b>1</b>, <b>2</b>, <b>3</b>). The lads rotate all shift &mdash; Todd, Jim, Matt, Martin, Ron, Billy, Tommy, Darren and Clancy the Colonel, in full army uniform. Tips shrink as patience drains, and the house gets busier &mdash; and thirstier &mdash; as the shift wears on.
+        Serve by tapping the patron (or pressing <b>1</b>, <b>2</b>, <b>3</b>). The lads rotate all shift &mdash; Todd, Jim, Matt the firefighter in his full turnout gear, Matt in plain clothes, Martin, Ron, Billy, Tommy, Darren and Clancy the Colonel, in full army uniform. Tips shrink as patience drains, and the house gets busier &mdash; and thirstier &mdash; as the shift wears on.
       </div>
       <div class="howto" id="howto-tapper" hidden>
-        <b>&#9752; How Tapper &rsquo;83 works:</b> The lads &mdash; Todd, Jim, Matt, Martin, Ron, Billy, Tommy, Darren and Clancy the Colonel, in full army uniform, rotating through &mdash; come through the doors on the left and shuffle down one of four bars toward your taps on the right.
-        Move between bars by <b>tapping a bar</b>, the <b>Bar up / Bar down</b> buttons, or <b>&#8593; / &#8595;</b> keys &mdash; then hit <b>Slide a mug</b> (or <b>Space</b>) and the mug rides the bar to the first patron it meets.
+        <b>&#9752; How Tapper &rsquo;83 works:</b> The lads &mdash; Todd, Jim, Matt the firefighter in his full turnout gear, Matt in plain clothes, Martin, Ron, Billy, Tommy, Darren and Clancy the Colonel, in full army uniform, rotating through &mdash; come through the doors on the left and shuffle down one of four bars toward your taps on the right.
+        Move between bars on a touch screen by <b>tapping a bar</b>, tapping a <b>Bar 1&ndash;4</b> button, or <b>swiping up / down on the bars</b> &mdash; or use the <b>Bar up / Bar down</b> buttons or <b>&#8593; / &#8595;</b> keys. Then hit <b>Slide a mug</b> (or <b>Space</b>, or tap the <b>taps end</b> of the bar you&rsquo;re standing at) and the mug rides the bar to the first patron it meets. All the touch buttons fire the instant you press them, so there&rsquo;s no tap delay mid-game.
         A served patron slides back out and tosses the <b>empty mug</b> back down the bar: be standing at that bar to catch it for bonus points.
-        A mug that sails past everybody, an empty that hits the floor, or a patron who reaches your taps costs you one of <b>5 lives</b>. Last 90 seconds, score big.
+        A mug that sails past everybody or an empty that goes off the long bar <b>smashes with a crash — and that ends the game</b> on the spot. A patron who reaches your taps costs you one of <b>5 lives</b>. Last 90 seconds, score big.
       </div>
 
       <section class="gallery" id="gallery" aria-label="Photo library of the real McSorley's Old Ale House">
@@ -769,7 +803,8 @@
           muted: false,
           mode: "classic",
           lives: 5,
-          broken: 0
+          broken: 0,
+          crashed: false
         };
 
         /* Tapper '83 state */
@@ -898,7 +933,11 @@
           else stopBartenderVoice();
         }
 
-        var NAMES = ["Todd", "Jim", "Matt", "Martin", "Ron", "Billy", "Tommy", "Darren", "Clancy"];
+        // Two Matts rotate through the house: "Matt" is the firefighter
+        // in his turnout gear, "MattPlain" is the other Matt in plain
+        // clothes (a regular shirt and shamrock pin, hair or flat cap
+        // like the rest of the lads). Both show at the bar as "Matt".
+        var NAMES = ["Todd", "Jim", "Matt", "Martin", "Ron", "Billy", "Tommy", "Darren", "MattPlain", "Clancy"];
         var nameIdx = Math.floor(Math.random() * NAMES.length);
         function nextName() { var n = NAMES[nameIdx % NAMES.length]; nameIdx += 1; return n; }
         var SHIRTS = ["#0f7a44", "#169b62", "#2f5d3a", "#5d6e35", "#1f6f54", "#d97a26", "#33526b", "#84602a"];
@@ -978,8 +1017,38 @@
             '<circle cx="20.5" cy="62.5" r="1.7" fill="#d4af37" stroke="#8a6d14" stroke-width=".5"/>' +
             '<path d="M19.2 60.9 h2.6 l-.6 1.2 h-1.4 Z" fill="#b3372a"/>';
         }
+        function firefighterHelmet(p) {
+          // Fire helmet for Matt: black traditional helmet with a wide
+          // brim, a raised front comb, and a gold leather front shield
+          // with a red flame — his own hair showing at the sides.
+          return '<path d="M15 30 q-1.4 8 1.6 11 l4 -1 q-2.4 -4.8 -2.4 -10 Z" fill="' + p.hair + '"/>' +
+            '<path d="M49 30 q1.4 8 -1.6 11 l-4 -1 q2.4 -4.8 2.4 -10 Z" fill="' + p.hair + '"/>' +
+            '<path d="M14 29 C14 14 22 7 32 7 C42 7 50 14 50 29 L14 29 Z" fill="#26262b"/>' +
+            '<path d="M28.6 8.2 q3.4 -2.8 6.8 0 l-.7 9.3 h-5.4 Z" fill="#17171b"/>' +
+            '<path d="M19.5 17 q4.5 -5.5 11 -6.8" stroke="rgba(255,255,255,.15)" stroke-width="1.3" fill="none" stroke-linecap="round"/>' +
+            '<path d="M13 28.5 L51 28.5 C55.5 28.5 57 31.5 54.8 33.6 C50 35.8 14 35.8 9.2 33.6 C7 31.5 8.5 28.5 13 28.5 Z" fill="#17171b"/>' +
+            '<path d="M25.5 10.5 h13 v6.8 q0 7.3 -6.5 10.4 q-6.5 -3.1 -6.5 -10.4 Z" fill="#e0aa3e" stroke="#8a6d14" stroke-width=".8"/>' +
+            '<path d="M32 13.8 c1.9 2.1 2.9 3.6 2.9 5 a2.9 2.9 0 1 1 -5.8 0 c0 -1.4 1 -2.9 2.9 -5 Z" fill="#b3372a"/>';
+        }
+        function firefighterBody() {
+          // Matt's turnout coat: black gear with the NFPA triple trim —
+          // lime-yellow bands split by a silver reflective stripe across
+          // the chest and the hem — a high collar, storm flap and clasps,
+          // worn instead of a regular shirt and shamrock pin.
+          return '<path d="M10 74 q2 -22 22 -22 t22 22 Z" fill="#2e2a26"/>' +
+            '<path d="M24.5 51.8 L39.5 51.8 L36.8 58 L27.2 58 Z" fill="#1f1c19"/>' +
+            '<path d="M27.2 53.2 h9.6" stroke="#d8e14c" stroke-width="1" opacity=".8"/>' +
+            '<line x1="32" y1="58" x2="32" y2="74" stroke="#171412" stroke-width="1.4"/>' +
+            '<path d="M11.9 60.3 h40.2 l.55 5.6 h-41.3 Z" fill="#ccd12e"/>' +
+            '<path d="M12.1 62.1 h39.8 l.3 2 h-40.4 Z" fill="#d7dde2"/>' +
+            '<path d="M10.7 69.3 h42.6 l.35 4.7 h-43.3 Z" fill="#ccd12e"/>' +
+            '<path d="M10.9 70.9 h42.2 l.2 1.7 h-42.6 Z" fill="#d7dde2"/>' +
+            '<rect x="30.6" y="59" width="2.8" height="1.7" rx=".5" fill="#c8cdd1"/>' +
+            '<rect x="30.6" y="66.8" width="2.8" height="1.7" rx=".5" fill="#c8cdd1"/>';
+        }
         function headTop(p) {
           if (p.isColonel) return colonelCap(p);
+          if (p.isFirefighter) return firefighterHelmet(p);
           return p.hat ? flatCap(p) : fullHair(p.hair);
         }
 
@@ -1015,7 +1084,7 @@
         }
         function patronSVG(p) {
           return '<svg width="64" height="74" viewBox="0 0 64 74" aria-hidden="true">' +
-            (p.isColonel ? colonelBody() : '<path d="M10 74 q2 -22 22 -22 t22 22 Z" fill="' + p.shirt + '"/>' + shamrockPin(44, 62)) +
+            (p.isColonel ? colonelBody() : p.isFirefighter ? firefighterBody() : '<path d="M10 74 q2 -22 22 -22 t22 22 Z" fill="' + p.shirt + '"/>' + shamrockPin(44, 62)) +
             '<circle cx="32" cy="34" r="17" fill="' + p.skin + '"/>' +
             headTop(p) +
             '<circle cx="26" cy="35" r="2" fill="#241708"/><circle cx="38" cy="35" r="2" fill="#241708"/>' +
@@ -1092,6 +1161,34 @@
         function sndBad() { blip(160, 0.22, "sawtooth", 0.08); }
         function sndSplash() { blip(300, 0.1, "square", 0.05); blip(190, 0.18, "square", 0.05, 0.06); }
         function sndBell() { blip(1180, 0.3, "sine", 0.1); }
+        function sndCrash() {
+          // Glass crash for a mug off the long bar: a burst of filtered
+          // noise for the smash plus bright, staggered shard tones
+          // tinkling down — synthesized, so no file is needed, and the
+          // mute button silences it like every other game sound.
+          if (S.muted) return;
+          var ac = audio(); if (!ac) return;
+          var t = ac.currentTime;
+          try {
+            var dur = 0.55;
+            var size = Math.floor(ac.sampleRate * dur);
+            var buffer = ac.createBuffer(1, size, ac.sampleRate);
+            var data = buffer.getChannelData(0);
+            for (var i = 0; i < size; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / size, 1.5);
+            var noise = ac.createBufferSource(); noise.buffer = buffer;
+            var hp = ac.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 1300;
+            var ng = ac.createGain();
+            ng.gain.setValueAtTime(0.34, t);
+            ng.gain.exponentialRampToValueAtTime(0.001, t + dur);
+            noise.connect(hp); hp.connect(ng); ng.connect(ac.destination);
+            noise.start(t); noise.stop(t + dur);
+          } catch (e) {}
+          var shards = [2637, 3136, 3520, 4186, 2349, 2794, 1976];
+          for (var s = 0; s < shards.length; s++) {
+            blip(shards[s] + Math.random() * 300, 0.16 + Math.random() * 0.14, "sine", 0.07, 0.02 + s * 0.045 + Math.random() * 0.02);
+          }
+          blip(185, 0.28, "triangle", 0.1, 0);
+        }
 
         /* ================= Callout ================= */
         var calloutTimer = 0;
@@ -1192,14 +1289,18 @@
           var patienceTotal = 30 - ramp * 11; // 30s early, ~19s late
           var rawName = nextName();
           var isCol = rawName === "Clancy";
+          var isFF = rawName === "Matt";
+          var isPlainMatt = rawName === "MattPlain";
           S.patrons[i] = {
-            name: isCol ? "Col. Clancy" : rawName,
+            name: isCol ? "Col. Clancy" : isPlainMatt ? "Matt" : rawName,
             isColonel: isCol,
+            isFirefighter: isFF,
+            isPlainMatt: isPlainMatt,
             order: Math.random() < 0.5 ? "light" : "dark",
-            shirt: isCol ? "#4f5a2a" : SHIRTS[Math.floor(Math.random() * SHIRTS.length)],
+            shirt: isCol ? "#4f5a2a" : isFF ? "#2e2a26" : SHIRTS[Math.floor(Math.random() * SHIRTS.length)],
             skin: SKINS[Math.floor(Math.random() * SKINS.length)],
             hair: isCol ? "#8a8578" : pickHair(),
-            hat: isCol ? null : pickHat(),
+            hat: isCol || isFF ? null : pickHat(),
             patience: 1,
             patienceTotal: patienceTotal,
             grumpy: false
@@ -1269,7 +1370,7 @@
         }
         function tPatronSVG(p) {
           return '<svg width="38" height="44" viewBox="0 0 64 74" aria-hidden="true">' +
-            (p.isColonel ? colonelBody() : '<path d="M10 74 q2 -22 22 -22 t22 22 Z" fill="' + p.shirt + '"/>' + shamrockPin(44, 62)) +
+            (p.isColonel ? colonelBody() : p.isFirefighter ? firefighterBody() : '<path d="M10 74 q2 -22 22 -22 t22 22 Z" fill="' + p.shirt + '"/>' + shamrockPin(44, 62)) +
             '<circle cx="32" cy="34" r="17" fill="' + p.skin + '"/>' +
             headTop(p) +
             '<circle cx="26" cy="35" r="2" fill="#241708"/><circle cx="38" cy="35" r="2" fill="#241708"/>' +
@@ -1294,28 +1395,67 @@
               d.setAttribute("role", "button");
               d.setAttribute("aria-label", "Bar " + (idx + 1));
               d.innerHTML = '<div class="door"></div><div class="taps-end"></div><div class="lane-no">' + (idx + 1) + '</div><div class="bartender">' + bartenderSVG() + '</div>';
-              d.addEventListener("click", function () { moveBartender(idx); });
+              var laneHandledAt = 0;
+              d.addEventListener("pointerdown", function (e) {
+                e.preventDefault();
+                laneHandledAt = Date.now();
+                d.classList.add("touched");
+                setTimeout(function () { d.classList.remove("touched"); }, 160);
+                // Tapping the taps end (right-hand end) of the bar you're
+                // already standing at slides a mug — the fastest touch
+                // serve there is. Anywhere else on a bar jumps you to it.
+                var rect = d.getBoundingClientRect();
+                var atTaps = rect.width > 0 && (e.clientX - rect.left) >= rect.width - 72;
+                if (atTaps && idx === T.activeLane && S.playing && S.mode === "tapper") {
+                  slideMug();
+                } else {
+                  moveBartender(idx);
+                }
+              });
+              d.addEventListener("click", function (e) {
+                // Mouse / keyboard / assistive-tech clicks still work;
+                // swallow only the synthetic click that follows a
+                // pointerdown we already handled, so nothing fires twice.
+                if (Date.now() - laneHandledAt < 600) { e.preventDefault(); return; }
+                moveBartender(idx);
+              });
               elLanes.appendChild(d);
               laneEls.push(d);
             })(i);
           }
         }
+        function tapperHaptic(ms) {
+          try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {}
+        }
+        function syncLaneJumpBtns() {
+          for (var b = 0; b < 4; b++) {
+            var btn = document.getElementById("t-lane-" + b);
+            if (!btn) continue;
+            btn.classList.toggle("active", b === T.activeLane);
+            btn.setAttribute("aria-pressed", String(b === T.activeLane));
+          }
+        }
         function moveBartender(idx) {
           T.activeLane = Math.max(0, Math.min(3, idx));
           for (var i = 0; i < 4; i++) laneEls[i].classList.toggle("active", i === T.activeLane);
+          syncLaneJumpBtns();
           if (S.playing && S.mode === "tapper") blip(340, 0.05, "square", 0.05);
         }
         function spawnTPatron(lane) {
           var ramp = Math.min(S.elapsed / TAPPER_SECONDS, 1);
           var rawName = nextName();
           var isCol = rawName === "Clancy";
+          var isFF = rawName === "Matt";
+          var isPlainMatt = rawName === "MattPlain";
           var p = {
-            name: isCol ? "Col. Clancy" : rawName,
+            name: isCol ? "Col. Clancy" : isPlainMatt ? "Matt" : rawName,
             isColonel: isCol,
-            shirt: isCol ? "#4f5a2a" : SHIRTS[Math.floor(Math.random() * SHIRTS.length)],
+            isFirefighter: isFF,
+            isPlainMatt: isPlainMatt,
+            shirt: isCol ? "#4f5a2a" : isFF ? "#2e2a26" : SHIRTS[Math.floor(Math.random() * SHIRTS.length)],
             skin: SKINS[Math.floor(Math.random() * SKINS.length)],
             hair: isCol ? "#8a8578" : pickHair(),
-            hat: isCol ? null : pickHat(),
+            hat: isCol || isFF ? null : pickHat(),
             pos: 4,
             speed: 1.85 + ramp * 1.15 + Math.random() * 0.55,
             exiting: false,
@@ -1340,6 +1480,7 @@
         function slideMug() {
           if (!S.playing || S.mode !== "tapper" || T.slideCool > 0) return;
           audio();
+          tapperHaptic(12);
           for (var i = 0; i < T.mugs.length; i++) if (T.mugs[i].lane === T.activeLane && T.mugs[i].kind === "full") return;
           addMug(T.activeLane, 84, "full");
           T.slideCool = 0.18;
@@ -1359,6 +1500,23 @@
           say(msg + " — " + Math.max(0, S.lives) + (S.lives === 1 ? " life" : " lives") + " left!", "bad");
           updateHUD();
           if (S.lives <= 0) endGame();
+        }
+        function glassCrash(msg, lane) {
+          // A glass off the long bar is not a lost life — it smashes,
+          // the crash sounds, and the game ends on the spot.
+          S.broken += 1;
+          S.streak = 0;
+          S.crashed = true;
+          tapperHaptic([30, 40, 30]);
+          sndCrash();
+          flashLane(lane);
+          say("Crash! " + msg + " That's the game!", "bad");
+          updateHUD();
+          // Freeze play right away so nothing else moves, but give the
+          // crash a beat to land before the end veil covers the bar.
+          S.playing = false;
+          document.body.classList.remove("playing");
+          setTimeout(function () { endGame(); }, 800);
         }
         function removeEl(e) { if (e.el && e.el.parentNode) e.el.parentNode.removeChild(e.el); }
 
@@ -1431,7 +1589,7 @@
               }
               if (m.pos < -4) {
                 removeEl(m); T.mugs.splice(j, 1);
-                loseLife("That mug sailed past everybody and smashed on the floor!", m.lane);
+                glassCrash("That mug sailed past everybody and smashed off the end of the long bar!", m.lane);
                 if (!S.playing) return;
                 continue;
               }
@@ -1444,7 +1602,7 @@
                   blip(760, 0.1, "triangle", 0.12); blip(1020, 0.14, "triangle", 0.1, 0.07);
                   say("Empty caught! +5 — streak " + S.streak + ".", "good");
                 } else {
-                  loseLife("An empty mug hit the floor — be on its bar to catch it!", m.lane);
+                  glassCrash("An empty mug went off the long bar and smashed on the floor — be on its bar to catch it!", m.lane);
                   if (!S.playing) return;
                 }
                 updateHUD();
@@ -1471,8 +1629,8 @@
           $("hud-fourth-k").textContent = tap ? "Lives" : "Streak";
           if (tap) {
             $("veil-title").textContent = "☘ Tapper ’83 — work the long Irish bar.";
-            $("veil-p1").innerHTML = "Four bars, and the lads — Todd, Jim, Matt, Martin, Ron, Billy, Tommy, Darren and Col. Clancy, rotating through — are shuffling down every one of them toward your taps. Jump to their bar and <b>slide a mug</b> down to them before they arrive.";
-            $("veil-p2").innerHTML = "They slide the <b>empty back</b> — be standing at that bar to catch it. A smashed mug, a missed empty, or a patron who reaches the taps costs a life. You have <b>5 lives</b>.";
+            $("veil-p1").innerHTML = "Four bars, and the lads — Todd, Jim, Matt in his firefighter turnout gear, Matt in plain clothes, Martin, Ron, Billy, Tommy, Darren and Col. Clancy, rotating through — are shuffling down every one of them toward your taps. Jump to their bar — tap it, tap a Bar 1–4 button, or swipe up / down on the bars — and <b>slide a mug</b> down to them before they arrive.";
+            $("veil-p2").innerHTML = "They slide the <b>empty back</b> — be standing at that bar to catch it. If a glass goes off the long bar it <b>smashes with a crash and the game ends</b> on the spot. A patron who reaches the taps costs a life. You have <b>5 lives</b>.";
             $("start-btn").textContent = "Start Tapper ’83 — 90 seconds";
             S.timeLeft = TAPPER_SECONDS;
           } else {
@@ -1497,7 +1655,7 @@
           document.body.classList.add("playing");
           S.elapsed = 0;
           S.score = 0; S.pints = 0; S.streak = 0; S.bestStreak = 0; S.walkouts = 0;
-          S.lives = 5; S.broken = 0;
+          S.lives = 5; S.broken = 0; S.crashed = false;
           if (S.mode === "tapper") {
             S.timeLeft = TAPPER_SECONDS;
             T.activeLane = 0;
@@ -1552,15 +1710,20 @@
             else if (S.pints >= 8) { rank = "Seasoned Irish Hand"; line = "Solid work up and down the long bar — great fun all round."; }
             else if (S.pints >= 4) { rank = "Barback"; line = "The floor's seen some glass, but the house forgives."; }
             else { rank = "First Shift"; line = "The regulars are patient. Mostly. Broom's by the door."; }
-            $("end-stats").textContent = S.score + " points · " + S.pints + " patrons served · best catch streak " + S.bestStreak + (S.broken ? " · " + S.broken + " smashed" : "") + (S.lives > 0 ? " · " + S.lives + " lives to spare" : " · out of lives");
+            if (S.crashed) line = "One glass off the long bar and it's all over — crash, smash, game done. Broom's by the door.";
+            var endTitle = elEndVeil.querySelector("h2");
+            if (endTitle) endTitle.textContent = S.crashed ? "Crash! That's the game!" : "That's the shift!";
+            $("end-stats").textContent = S.score + " points · " + S.pints + " patrons served · best catch streak " + S.bestStreak + (S.broken ? " · " + S.broken + " smashed" : "") + (S.crashed ? " · smashed glass ended the game" : (S.lives > 0 ? " · " + S.lives + " lives to spare" : " · out of lives"));
             $("end-rank").textContent = "House rank: " + rank;
             $("end-line").textContent = line;
             $("again-btn").textContent = "Play Tapper ’83 again";
             elEndVeil.classList.remove("hidden");
-            say(S.lives <= 0 ? "Out of lives — that's the shift!" : "Time! Last call.", "");
-            sndBell();
+            say(S.crashed ? "Crash! A glass off the long bar — that's the game!" : (S.lives <= 0 ? "Out of lives — that's the shift!" : "Time! Last call."), "");
+            if (!S.crashed) sndBell();
             return;
           }
+          var classicTitle = elEndVeil.querySelector("h2");
+          if (classicTitle) classicTitle.textContent = "That's the shift!";
           if (S.pints >= 18) { rank = "Legend of the Emerald Isle ☘"; line = "They'll be telling stories about this shift for a hundred years — pure Irish legend."; }
           else if (S.pints >= 13) { rank = "Head Bartender of the House"; line = "Smooth hands, fast taps, happy house."; }
           else if (S.pints >= 9) { rank = "Seasoned Irish Hand"; line = "A solid shift — the regulars approve, and the fun was mighty."; }
@@ -1689,9 +1852,63 @@
         });
         $("mode-classic").addEventListener("click", function () { setMode("classic"); });
         $("mode-tapper").addEventListener("click", function () { setMode("tapper"); });
-        $("t-up").addEventListener("click", function () { moveBartender(T.activeLane - 1); });
-        $("t-down").addEventListener("click", function () { moveBartender(T.activeLane + 1); });
-        $("t-slide").addEventListener("click", slideMug);
+        /* ---- Tapper '83 touch controls ----
+           Every touch button fires on pointerdown (the instant a finger
+           lands), not on click, so there's no tap delay while mugs are
+           flying. The click that browsers fire afterwards is swallowed
+           for half a second so nothing double-fires; a click with no
+           preceding pointerdown (keyboard, assistive tech) still works. */
+        function bindPress(el, fn) {
+          if (!el) return;
+          var handledAt = 0;
+          el.addEventListener("pointerdown", function (e) {
+            e.preventDefault();
+            handledAt = Date.now();
+            el.classList.add("pressing");
+            tapperHaptic(8);
+            fn();
+          });
+          function unpress() { el.classList.remove("pressing"); }
+          el.addEventListener("pointerup", unpress);
+          el.addEventListener("pointercancel", unpress);
+          el.addEventListener("pointerleave", unpress);
+          el.addEventListener("click", function (e) {
+            if (Date.now() - handledAt < 600) { e.preventDefault(); return; }
+            fn();
+          });
+          el.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+        }
+        bindPress($("t-up"), function () { moveBartender(T.activeLane - 1); });
+        bindPress($("t-down"), function () { moveBartender(T.activeLane + 1); });
+        bindPress($("t-slide"), slideMug);
+        for (var lj = 0; lj < 4; lj++) {
+          (function (laneIdx) {
+            bindPress($("t-lane-" + laneIdx), function () { moveBartender(laneIdx); });
+          })(lj);
+        }
+        syncLaneJumpBtns();
+
+        /* Swipe up / down on the bars to move between them: dragging a
+           finger vertically steps the bartender one bar per ~44px of
+           travel, so a long swipe crosses several bars in one motion.
+           Taps still land via each lane's own pointerdown above. */
+        (function initLaneSwipe() {
+          if (!elLanes) return;
+          var swipeY = null, swipeId = null;
+          elLanes.addEventListener("pointerdown", function (e) {
+            swipeY = e.clientY; swipeId = e.pointerId;
+          });
+          elLanes.addEventListener("pointermove", function (e) {
+            if (swipeY === null || e.pointerId !== swipeId) return;
+            if (!S.playing || S.mode !== "tapper") return;
+            var dy = e.clientY - swipeY;
+            if (dy <= -44) { moveBartender(T.activeLane - 1); swipeY = e.clientY; }
+            else if (dy >= 44) { moveBartender(T.activeLane + 1); swipeY = e.clientY; }
+          });
+          function endSwipe() { swipeY = null; swipeId = null; }
+          elLanes.addEventListener("pointerup", endSwipe);
+          elLanes.addEventListener("pointercancel", endSwipe);
+        })();
 
         /* ================= Photo library ================= */
         (function initGallery() {
